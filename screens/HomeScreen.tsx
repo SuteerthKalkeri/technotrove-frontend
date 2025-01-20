@@ -38,8 +38,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const response = await api.get('/api/products');
       const fetchedProducts: Product[] = response.data;
-      setProducts(fetchedProducts);
-
+  
+      // Add lowest price calculation
+      const productsWithPrices = fetchedProducts.map((product) => {
+        const lowestPrice = product.productVariants?.reduce((minPrice, variant) => {
+          return variant.price < minPrice ? variant.price : minPrice;
+        }, Infinity);
+        return { ...product, lowestPrice };
+      });
+  
+      setProducts(productsWithPrices);
+  
       // Generate unique category names dynamically
       const uniqueCategories = [
         'All',
@@ -53,6 +62,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+
   const handleCategorySelect = (category: 'All' | Category) => {
     setSelectedCategory(category);
   };
@@ -63,19 +73,24 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       : products.filter((product) => product.category.name === selectedCategory);
 
   const renderProduct = ({ item }: { item: Product }) => (
-    <TouchableOpacity
-      style={[styles.card, isPortrait ? styles.portraitCard : styles.landscapeCard]}
-      onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
-    >
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.primaryImage }} style={styles.image} />
-        <Ionicons name="heart-outline" size={20} color="#f00" style={styles.favoriteIcon} />
-      </View>
-      <Text style={styles.title} numberOfLines={2}>
-        {item.name}
-      </Text>
-    </TouchableOpacity>
-  );
+  <TouchableOpacity
+    style={[styles.card, isPortrait ? styles.portraitCard : styles.landscapeCard]}
+    onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
+  >
+    <View style={styles.imageContainer}>
+      <Image source={{ uri: item.primaryImage }} style={styles.image} />
+      <Ionicons name="heart-outline" size={20} color="#f00" style={styles.favoriteIcon} />
+    </View>
+    <Text style={styles.title} numberOfLines={2}>
+      {item.name}
+    </Text>
+    {/* Display lowest price */}
+    <Text style={styles.price}>
+      ${item.lowestPrice?.toFixed(2) ?? 'N/A'}
+    </Text>
+  </TouchableOpacity>
+);
+
 
   const renderCategory = ({ item }: { item: string }) => (
     <TouchableOpacity
@@ -203,19 +218,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
     overflow: 'hidden',
+    alignItems: 'center', // Center align contents
+    padding: 10, // Add padding for spacing
   },
   portraitCard: {
-    height: 160,
+    height: 200, // Increase height for better spacing
   },
   landscapeCard: {
-    height: 120,
+    height: 180,
   },
 
   imageContainer: {
     width: '100%',
-    height: '65%',
+    height: '60%',
     backgroundColor: '#f5f5f5',
     overflow: 'hidden',
+    marginBottom: 10, // Add space below the image
   },
   image: { width: '100%', height: '100%', resizeMode: 'contain' },
 
@@ -229,11 +247,19 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
+    textAlign: 'center', // Center align the title
     marginHorizontal: 10,
-    marginTop: 5,
     color: '#333',
+  },
+
+  price: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 5,
+    textAlign: 'center',
   },
 
   loadingContainer: {
@@ -242,5 +268,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
 
 export default HomeScreen;
