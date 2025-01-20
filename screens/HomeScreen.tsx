@@ -10,7 +10,10 @@ type Category = 'Electronics' | 'Mobile' | 'Accessories';
 export type Product = {
   id: number;
   name: string;
-  category: Category;
+  category: {
+    id: number;
+    name: Category;
+  };
   primaryImage: string;
 };
 
@@ -21,7 +24,7 @@ interface Props {
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [categories,setCategories] = useState<(Category | 'All')[]>(['All', 'Electronics', 'Mobile', 'Accessories']);
+  const [categories, setCategories] = useState<(Category | 'All')[]>(['All']);
   const [selectedCategory, setSelectedCategory] = useState<'All' | Category>('All');
 
   const { width, height } = Dimensions.get('window');
@@ -29,7 +32,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     fetchProducts();
-
   }, []);
 
   const fetchProducts = async () => {
@@ -37,38 +39,32 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       const response = await api.get('/api/products');
       const fetchedProducts: Product[] = response.data;
       setProducts(fetchedProducts);
+
+      // Generate unique category names dynamically
       const uniqueCategories = [
         'All',
         ...new Set(fetchedProducts.map((product) => product.category.name)),
       ];
       setCategories(uniqueCategories);
-  
-      // Log categories after setting products
-      console.log('Product categories:', fetchedProducts.map((product) => product.category));
     } catch (error: any) {
       console.error('Error fetching products:', error.message);
     } finally {
       setLoading(false);
     }
   };
-  
 
   const handleCategorySelect = (category: 'All' | Category) => {
     setSelectedCategory(category);
   };
 
   const filteredProducts =
-  selectedCategory === 'All'
-    ? products
-    : products.filter(
-        (product) =>
-          product.category.name.toLowerCase() === selectedCategory.toLowerCase()
-      );
-
+    selectedCategory === 'All'
+      ? products
+      : products.filter((product) => product.category.name === selectedCategory);
 
   const renderProduct = ({ item }: { item: Product }) => (
     <TouchableOpacity
-      style={[styles.card, { height: isPortrait ? 160 : 200 }]}
+      style={[styles.card, isPortrait ? styles.portraitCard : styles.landscapeCard]}
       onPress={() => navigation.navigate('ProductDetail', { productId: item.id })}
     >
       <View style={styles.imageContainer}>
@@ -102,7 +98,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.container}>
         <Text>Loading...</Text>
       </View>
     );
@@ -120,19 +116,24 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         keyExtractor={(item) => item}
         renderItem={renderCategory}
         showsHorizontalScrollIndicator={false}
-        style={[styles.categoryList, { marginBottom: isPortrait ? 1 : 16 }]}
+        style={[styles.categoryList, isPortrait ? styles.portraitCategoryList : styles.landscapeCategoryList]}
       />
 
       {/* Product Grid */}
       <FlatList
-        data={filteredProducts}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderProduct}
-        numColumns={3}
-        columnWrapperStyle={styles.row}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.productList, { paddingTop: isPortrait ? 0 : 10 }]}
-      />
+  key={isPortrait ? 'portrait' : 'landscape'} // Fix: Ensure FlatList re-renders on orientation change
+  data={filteredProducts}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={renderProduct}
+  numColumns={isPortrait ? 3 : 5} // Adjust number of columns based on orientation
+  columnWrapperStyle={styles.row}
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={[
+    styles.productList,
+    isPortrait ? styles.portraitProductList : styles.landscapeProductList,
+  ]}
+/>
+
     </View>
   );
 };
@@ -143,9 +144,14 @@ const styles = StyleSheet.create({
 
   // Category list styling
   categoryList: {
-    marginTop: 0,
-    height: 0,
+    marginBottom: 16,
+    height: 50,
+  },
+  portraitCategoryList: {
     marginBottom: 0,
+  },
+  landscapeCategoryList: {
+    marginBottom: 10,
   },
 
   categoryButton: {
@@ -158,17 +164,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 40,
   },
-
   selectedCategoryButton: {
     backgroundColor: '#333',
   },
-
   categoryText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#333',
   },
-
   selectedCategoryText: {
     color: '#fff',
   },
@@ -176,13 +179,17 @@ const styles = StyleSheet.create({
   // Product grid styling
   productList: {
     paddingBottom: 16,
-    marginTop: 0,
+  },
+  portraitProductList: {
+    marginTop: 16,
+  },
+  landscapeProductList: {
+    marginTop: 32,
   },
 
   row: {
     justifyContent: 'space-between',
-    marginBottom: 40,
-    marginTop: 0,
+    marginBottom: 20,
   },
 
   card: {
@@ -197,6 +204,12 @@ const styles = StyleSheet.create({
     elevation: 3,
     overflow: 'hidden',
   },
+  portraitCard: {
+    height: 160,
+  },
+  landscapeCard: {
+    height: 120,
+  },
 
   imageContainer: {
     width: '100%',
@@ -204,7 +217,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     overflow: 'hidden',
   },
-
   image: { width: '100%', height: '100%', resizeMode: 'contain' },
 
   favoriteIcon: {
@@ -222,14 +234,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     marginTop: 5,
     color: '#333',
-  },
-
-  price: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginHorizontal: 10,
-    marginBottom: 10,
-    color: '#f00',
   },
 
   loadingContainer: {
