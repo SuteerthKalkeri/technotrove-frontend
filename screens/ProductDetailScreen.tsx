@@ -27,13 +27,24 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false); // State for Read More functionality
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         const response = await api.get(`/api/products/${productId}`);
-        setProduct(response.data);
-        setSelectedVariant(response.data.productVariants[0]); // Default to the first variant
+        const productData: ProductDetail = response.data;
+
+        // Sort variants: lowest price first, if prices are equal, keep the original order
+        const sortedVariants = productData.productVariants.sort((a, b) => {
+          if (a.price === b.price) {
+            return 0; // Keep the original order if prices are equal
+          }
+          return a.price - b.price; // Sort by price (lowest first)
+        });
+
+        setProduct({ ...productData, productVariants: sortedVariants });
+        setSelectedVariant(sortedVariants[0]); // Select the first variant after sorting
         setCurrentImageIndex(0); // Reset carousel index
       } catch (error: any) {
         console.error('Error fetching product details:', error.message);
@@ -57,6 +68,10 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
         prevIndex === 0 ? selectedVariant.images.length - 1 : prevIndex - 1
       );
     }
+  };
+
+  const toggleDescription = () => {
+    setIsExpanded((prev) => !prev);
   };
 
   if (!product || !selectedVariant) {
@@ -88,7 +103,23 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
       {/* Product Details */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>{product.name}</Text>
-        <Text style={styles.description}>{product.description}</Text>
+
+        {/* Description with Read More */}
+        <View>
+          <Text
+            style={styles.description}
+            numberOfLines={isExpanded ? undefined : 2} // Show 2 lines if not expanded
+          >
+            {product.description}
+          </Text>
+          {product.description.length > 100 && ( // Show Read More if description is long
+            <TouchableOpacity onPress={toggleDescription}>
+              <Text style={styles.readMoreButton}>
+                {isExpanded ? 'Read Less' : 'Read More'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Variant Selector */}
         <Text style={styles.skuTitle}>Available Variants:</Text>
@@ -143,7 +174,14 @@ const styles = StyleSheet.create({
   carouselImage: { width: 300, height: 200, resizeMode: 'contain' },
   scrollContainer: { padding: 16 },
   title: { fontSize: 24, fontWeight: 'bold', marginVertical: 8 },
-  description: { fontSize: 16, color: '#555', marginBottom: 16 },
+  description: { fontSize: 16, color: '#555', marginBottom: 4 },
+  readMoreButton: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#007BFF', // Blue color for the link
+    marginTop: 4,
+    textDecorationLine: 'underline',
+  },
   skuTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 8 },
   skuContainer: { flexDirection: 'row', marginBottom: 16 },
   variantButton: {

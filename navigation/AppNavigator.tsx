@@ -26,7 +26,7 @@ export default function AppNavigator() {
                 <Stack.Screen 
                     name="ProductDetail" 
                     component={ProductDetailScreen} 
-                    options={{ title: 'Product Details' }} // Set title for ProductDetail screen
+                    options={{ title: 'TechnoTrove' }} // Set title for ProductDetail screen
                 />
             </Stack.Navigator>
         </NavigationContainer>
