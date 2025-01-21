@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
@@ -10,7 +10,7 @@ type Variant = {
   sku: string;
   name: string;
   price: number;
-  variantImage: string; // Use this for displaying variant images
+  variantImage: string;
   images: string[];
 };
 
@@ -27,7 +27,10 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isExpanded, setIsExpanded] = useState(false); // State for Read More functionality
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const { width, height } = Dimensions.get('window');
+  const isPortrait = height > width;
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -35,17 +38,10 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
         const response = await api.get(`/api/products/${productId}`);
         const productData: ProductDetail = response.data;
 
-        // Sort variants: lowest price first, if prices are equal, keep the original order
-        const sortedVariants = productData.productVariants.sort((a, b) => {
-          if (a.price === b.price) {
-            return 0; // Keep the original order if prices are equal
-          }
-          return a.price - b.price; // Sort by price (lowest first)
-        });
-
+        const sortedVariants = productData.productVariants.sort((a, b) => a.price - b.price);
         setProduct({ ...productData, productVariants: sortedVariants });
-        setSelectedVariant(sortedVariants[0]); // Select the first variant after sorting
-        setCurrentImageIndex(0); // Reset carousel index
+        setSelectedVariant(sortedVariants[0]);
+        setCurrentImageIndex(0);
       } catch (error: any) {
         console.error('Error fetching product details:', error.message);
       }
@@ -70,9 +66,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
     }
   };
 
-  const toggleDescription = () => {
-    setIsExpanded((prev) => !prev);
-  };
+  const toggleDescription = () => setIsExpanded((prev) => !prev);
 
   if (!product || !selectedVariant) {
     return (
@@ -86,71 +80,122 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      {/* Image Carousel */}
-      <View style={styles.carouselContainer}>
-        <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
-          <Text style={styles.carouselButtonText}>‹</Text>
-        </TouchableOpacity>
-        <Image
-          source={{ uri: getCacheBustedUrl(selectedVariant.images[currentImageIndex]) }}
-          style={styles.carouselImage}
-        />
-        <TouchableOpacity onPress={handleNextImage} style={styles.carouselButton}>
-          <Text style={styles.carouselButtonText}>›</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Product Details */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.title}>{product.name}</Text>
-
-        {/* Description with Read More */}
-        <View>
-          <Text
-            style={styles.description}
-            numberOfLines={isExpanded ? undefined : 2} // Show 2 lines if not expanded
-          >
-            {product.description}
-          </Text>
-          {product.description.length > 100 && ( // Show Read More if description is long
-            <TouchableOpacity onPress={toggleDescription}>
-              <Text style={styles.readMoreButton}>
-                {isExpanded ? 'Read Less' : 'Read More'}
+      {isPortrait ? (
+        // Portrait Layout
+        <>
+          <View style={styles.carouselContainer}>
+            <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
+              <Text style={styles.carouselButtonText}>‹</Text>
+            </TouchableOpacity>
+            <Image
+              source={{ uri: getCacheBustedUrl(selectedVariant.images[currentImageIndex]) }}
+              style={styles.carouselImage}
+            />
+            <TouchableOpacity onPress={handleNextImage} style={styles.carouselButton}>
+              <Text style={styles.carouselButtonText}>›</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <Text style={styles.title}>{product.name}</Text>
+            <View>
+              <Text
+                style={styles.description}
+                numberOfLines={isExpanded ? undefined : 2}
+              >
+                {product.description}
               </Text>
+              {product.description.length > 100 && (
+                <TouchableOpacity onPress={toggleDescription}>
+                  <Text style={styles.readMoreButton}>
+                    {isExpanded ? 'Read Less' : 'Read More'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={styles.skuTitle}>Available Variants:</Text>
+            <View style={styles.skuContainer}>
+              {product.productVariants.map((variant) => (
+                <TouchableOpacity
+                  key={variant.sku}
+                  style={[
+                    styles.variantButton,
+                    selectedVariant.sku === variant.sku && styles.selectedVariantButton,
+                  ]}
+                  onPress={() => {
+                    setSelectedVariant(variant);
+                    setCurrentImageIndex(0);
+                  }}
+                >
+                  <Image
+                    source={{ uri: getCacheBustedUrl(variant.variantImage) }}
+                    style={styles.variantImage}
+                  />
+                  <Text style={styles.variantText}>{variant.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          <View style={styles.priceContainer}>
+            <Text style={styles.price}>${selectedVariant.price.toFixed(2)}</Text>
+          </View>
+        </>
+      ) : (
+        // Landscape Layout
+        <View style={styles.landscapeContainer}>
+          <View style={styles.landscapeCarousel}>
+            <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
+              <Text style={styles.carouselButtonText}>‹</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Variant Selector */}
-        <Text style={styles.skuTitle}>Available Variants:</Text>
-        <View style={styles.skuContainer}>
-          {product.productVariants.map((variant) => (
-            <TouchableOpacity
-              key={variant.sku}
-              style={[
-                styles.variantButton,
-                selectedVariant.sku === variant.sku && styles.selectedVariantButton,
-              ]}
-              onPress={() => {
-                setSelectedVariant(variant);
-                setCurrentImageIndex(0); // Reset carousel to the first image
-              }}
-            >
-              {/* Use variantImage with cache-busting */}
-              <Image
-                source={{ uri: getCacheBustedUrl(variant.variantImage) }}
-                style={styles.variantImage}
-              />
-              <Text style={styles.variantText}>{variant.name}</Text>
+            <Image
+              source={{ uri: getCacheBustedUrl(selectedVariant.images[currentImageIndex]) }}
+              style={[styles.carouselImage, { width: '90%' }]}
+            />
+            <TouchableOpacity onPress={handleNextImage} style={styles.carouselButton}>
+              <Text style={styles.carouselButtonText}>›</Text>
             </TouchableOpacity>
-          ))}
+          </View>
+          <ScrollView contentContainerStyle={styles.landscapeDetails}>
+            <Text style={styles.title}>{product.name}</Text>
+            <View>
+              <Text
+                style={styles.description}
+                numberOfLines={isExpanded ? undefined : 2}
+              >
+                {product.description}
+              </Text>
+              {product.description.length > 100 && (
+                <TouchableOpacity onPress={toggleDescription}>
+                  <Text style={styles.readMoreButton}>
+                    {isExpanded ? 'Read Less' : 'Read More'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={styles.skuTitle}>Available Variants:</Text>
+            <View style={styles.skuContainer}>
+              {product.productVariants.map((variant) => (
+                <TouchableOpacity
+                  key={variant.sku}
+                  style={[
+                    styles.variantButton,
+                    selectedVariant.sku === variant.sku && styles.selectedVariantButton,
+                  ]}
+                  onPress={() => {
+                    setSelectedVariant(variant);
+                    setCurrentImageIndex(0);
+                  }}
+                >
+                  <Image
+                    source={{ uri: getCacheBustedUrl(variant.variantImage) }}
+                    style={styles.variantImage}
+                  />
+                  <Text style={styles.variantText}>{variant.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
-
-      {/* Price at Bottom */}
-      <View style={styles.priceContainer}>
-        <Text style={styles.price}>${selectedVariant.price.toFixed(2)}</Text>
-      </View>
+      )}
     </View>
   );
 };
@@ -163,6 +208,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  landscapeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  landscapeCarousel: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  landscapeDetails: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   carouselButton: {
     padding: 10,
@@ -178,23 +237,30 @@ const styles = StyleSheet.create({
   readMoreButton: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#007BFF', // Blue color for the link
+    color: '#007BFF',
     marginTop: 4,
     textDecorationLine: 'underline',
   },
   skuTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 8 },
-  skuContainer: { flexDirection: 'row', marginBottom: 16 },
+  skuContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
   variantButton: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 10,
-    marginRight: 10,
-    padding: 10,
+    margin: 5,
+    padding: 8,
+    width: 100,
+    height: 120,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedVariantButton: { borderColor: '#f90', backgroundColor: '#fff8e7' },
-  variantImage: { width: 60, height: 60, resizeMode: 'contain' },
-  variantText: { fontSize: 12, textAlign: 'center', marginTop: 4 },
+  variantImage: { width: 50, height: 50, resizeMode: 'contain' },
+  variantText: { fontSize: 13, textAlign: 'center', marginTop: 4 },
   priceContainer: {
     alignItems: 'center',
     padding: 16,
