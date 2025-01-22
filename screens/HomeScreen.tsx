@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, Image, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import {
+  View,
+  FlatList,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  TextInput,
+} from 'react-native';
 import api from '../services/api';
-import { ScrollView } from 'react-native-gesture-handler';
 
 type Category = 'Electronics' | 'Mobile' | 'Accessories' | 'Favorites';
 
@@ -13,6 +21,7 @@ export type Product = {
     name: Category;
   };
   primaryImage: string;
+  productVariants?: { price: number }[]; // Add this field to represent variants
 };
 
 interface Props {
@@ -25,6 +34,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [categories, setCategories] = useState<(Category | 'All')[]>(['All']);
   const [selectedCategory, setSelectedCategory] = useState<'All' | Category>('All');
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const { width, height } = Dimensions.get('window');
   const isPortrait = height > width;
@@ -36,21 +46,20 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const fetchProducts = async () => {
     try {
       const response = await api.get('/api/products');
-      const fetchedProducts: Product[] = response.data;
-
-      const productsWithPrices = fetchedProducts.map((product) => {
-        const lowestPrice = product.productVariants?.reduce((minPrice, variant) => {
-          return variant.price < minPrice ? variant.price : minPrice;
-        }, Infinity);
+      const fetchedProducts: Product[] = response.data.map((product) => {
+        // Calculate the lowest price from the variants
+        const lowestPrice = product.productVariants
+          ? Math.min(...product.productVariants.map((variant) => variant.price))
+          : null;
         return { ...product, lowestPrice };
       });
 
-      setProducts(productsWithPrices);
+      setProducts(fetchedProducts);
 
       const uniqueCategories = [
         'All',
         ...new Set(fetchedProducts.map((product) => product.category.name)),
-        'Favorites', // Add Favorites category
+        'Favorites',
       ];
       setCategories(uniqueCategories);
     } catch (error: any) {
@@ -70,12 +79,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const filteredProducts =
-    selectedCategory === 'Favorites'
-      ? products.filter((product) => favorites.includes(product.id))
-      : selectedCategory === 'All'
-      ? products
-      : products.filter((product) => product.category.name === selectedCategory);
+  const filteredProducts = products
+    .filter((product) => {
+      if (selectedCategory === 'Favorites') {
+        return favorites.includes(product.id);
+      }
+      if (selectedCategory === 'All') {
+        return true;
+      }
+      return product.category.name === selectedCategory;
+    })
+    .filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const renderProduct = ({ item }: { item: Product }) => (
     <TouchableOpacity
@@ -91,8 +105,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Image
             source={
               favorites.includes(item.id)
-                ? require('../assets/heart-filled.png') // Path to the filled heart
-                : require('../assets/heart-outline.png') // Path to the outlined heart
+                ? require('../assets/heart-filled.png')
+                : require('../assets/heart-outline.png')
             }
             style={styles.favoriteIcon}
           />
@@ -102,7 +116,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {item.name}
       </Text>
       <Text style={styles.price}>
-        ${item.lowestPrice?.toFixed(2) ?? 'N/A'}
+        {item.lowestPrice ? `$${item.lowestPrice.toFixed(2)}` : 'Price not available'}
       </Text>
     </TouchableOpacity>
   );
@@ -136,24 +150,40 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Home</Text>
-
+      {/* Header with Cart Icon */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Home</Text>
+        <TouchableOpacity style={styles.cartButton}
+        onPress={() => navigation.navigate('Cart')}>
+          <Image
+            source={require('../assets/cart.png')} // Ensure cart.png is in your assets
+            style={styles.cartIcon}
+          />
+        </TouchableOpacity>
+      </View>
+  
+      {/* Search Bar */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search products..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+  
       {/* Category Filter */}
       <View>
         <FlatList
-        data={categories}
-        horizontal
-        keyExtractor={(item) => item}
-        renderItem={renderCategory}
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryList}
+          data={categories}
+          horizontal
+          keyExtractor={(item) => item}
+          renderItem={renderCategory}
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryList}
         />
       </View>
-      
-
+  
       {/* Product Grid */}
-      
-        <FlatList
+      <FlatList
         key={isPortrait ? 'portrait' : 'landscape'}
         data={filteredProducts}
         keyExtractor={(item) => item.id.toString()}
@@ -162,16 +192,23 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.productList}
-        />
-      
-      
+      />
     </View>
   );
+  
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 10 },
   header: { fontSize: 24, fontWeight: 'bold', marginVertical: 16 },
+  searchBar: {
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: '#f9f9f9',
+  },
   categoryList: { marginBottom: 16 },
   categoryButton: {
     paddingHorizontal: 20,
@@ -188,10 +225,10 @@ const styles = StyleSheet.create({
   selectedCategoryText: { color: '#fff' },
   productList: {
     flexGrow: 1,
-    justifyContent: 'flex-start', // Align items to the top
-    paddingBottom: 16,
+    justifyContent: 'flex-start',
+    paddingBottom: 8,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap' },
+  row: { flexDirection: 'row', justifyContent: "flex-start", marginBottom: 20 },
   card: {
     flex: 1,
     marginHorizontal: '1.5%',
@@ -236,7 +273,30 @@ const styles = StyleSheet.create({
     color: '#333',
     width: '100%',
   },
-  price: { fontSize: 16, fontWeight: 'bold', color: '#000', marginTop: 5, textAlign: 'center' },
+  price: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  headerContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 10,
+},
+cartButton: {
+  padding: 8,
+  backgroundColor: '#f5f5f5',
+  borderRadius: 8,
+},
+cartIcon: {
+  width: 24,
+  height: 24,
+  resizeMode: 'contain',
+},
+
 });
 
 export default HomeScreen;

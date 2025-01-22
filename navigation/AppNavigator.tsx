@@ -3,11 +3,14 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
+import CartScreen from '../screens/CartScreen';
+
 
 // Define type for stack parameters
 export type RootStackParamList = {
     Home: undefined; // No parameters for Home screen
     ProductDetail: { productId: number }; // ProductDetail requires a productId parameter
+    Cart: undefined;
 };
 
 
@@ -28,6 +31,7 @@ export default function AppNavigator() {
                     component={ProductDetailScreen} 
                     options={{ title: 'TechnoTrove' }} // Set title for ProductDetail screen
                 />
+                <Stack.Screen name="Cart" component={CartScreen} options={{ title: 'Cart' }} />
             </Stack.Navigator>
         </NavigationContainer>
     );
