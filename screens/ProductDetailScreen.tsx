@@ -22,7 +22,7 @@ type ProductDetail = {
   productVariants: Variant[];
 };
 
-const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
+const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, navigation }) => {
   const { productId } = route.params;
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
@@ -88,7 +88,25 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
   }
 
   return (
-    <View style={styles.container}>
+      <View style={styles.container}>
+      {/* Header with Cart Button */}
+      <View style={styles.headerContainer}>
+  <Text style={styles.hierarchyText}>
+    {`${product.name} > ${selectedVariant?.name.replace(product.name, '').trim()}`}
+  </Text>
+  <TouchableOpacity
+    style={styles.cartButton}
+    onPress={() => navigation.navigate('Cart')}
+  >
+    <Image
+      source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
+      style={styles.cartIcon}
+    />
+  </TouchableOpacity>
+</View>
+
+
+
       {isPortrait ? (
         <>
           <View style={styles.carouselContainer}>
@@ -140,8 +158,57 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
         </>
       ) : (
         <View style={styles.landscapeContainer}>
-          {/* Landscape Layout */}
-        </View>
+  {/* Left Section: Image Carousel */}
+  <View style={styles.landscapeCarouselContainer}>
+    <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
+      <Text style={styles.carouselButtonText}>‹</Text>
+    </TouchableOpacity>
+    <Image
+      source={{ uri: cacheBustedImages[currentImageIndex] }}
+      style={styles.carouselImageLandscape}
+    />
+    <TouchableOpacity onPress={handleNextImage} style={styles.carouselButton}>
+      <Text style={styles.carouselButtonText}>›</Text>
+    </TouchableOpacity>
+  </View>
+
+  {/* Right Section: Product Details */}
+  <ScrollView contentContainerStyle={styles.landscapeDetailsContainer}>
+    <Text style={styles.title}>{product.name}</Text>
+    <View>
+      <Text style={styles.description} numberOfLines={isExpanded ? undefined : 3}>
+        {product.description}
+      </Text>
+      {product.description.length > 100 && (
+        <TouchableOpacity onPress={toggleDescription}>
+          <Text style={styles.readMoreButton}>
+            {isExpanded ? 'Read Less' : 'Read More'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+    <Text style={styles.skuTitle}>Available Variants:</Text>
+    <View style={styles.skuContainer}>
+      {product.productVariants.map((variant) => (
+        <TouchableOpacity
+          key={variant.sku}
+          style={[
+            styles.variantButton,
+            selectedVariant?.sku === variant.sku && styles.selectedVariantButton,
+          ]}
+          onPress={() => setSelectedVariant(variant)}
+        >
+          <Image source={{ uri: variant.variantImage }} style={styles.variantImage} />
+          <Text style={styles.variantText}>{variant.name}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+    <View style={styles.priceContainer}>
+      <Text style={styles.price}>${selectedVariant?.price.toFixed(2)}</Text>
+    </View>
+  </ScrollView>
+</View>
+
       )}
     </View>
   );
@@ -150,6 +217,24 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  header: { fontSize: 24, fontWeight: 'bold' },
+  cartButton: {
+    padding: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  cartIcon: {
+    width: 24,
+    height: 24,
+    resizeMode: 'contain',
+  },
   carouselContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -201,6 +286,36 @@ const styles = StyleSheet.create({
     borderTopColor: '#ddd',
   },
   price: { fontSize: 22, fontWeight: 'bold', color: '#000' },
+  landscapeContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+  },
+  landscapeCarouselContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+  },
+  landscapeDetailsContainer: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'flex-start',
+  },
+  carouselImageLandscape: {
+    width: '90%',
+    height: 200,
+    resizeMode: 'contain',
+  },
+  hierarchyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    flex: 1, // Ensures the text takes available space
+    marginRight: 10,
+    color: '#333',
+  },
+  
+  
 });
 
 export default ProductDetailScreen;
