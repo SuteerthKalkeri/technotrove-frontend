@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View,
   FlatList,
@@ -10,6 +10,7 @@ import {
   TextInput,
 } from 'react-native';
 import api from '../services/api';
+import { useCart } from '../context/CartContext';
 
 type Category = 'Electronics' | 'Mobile' | 'Accessories' | 'Favorites';
 
@@ -29,6 +30,10 @@ interface Props {
 }
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
+  const {cart} = useCart();
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [categories, setCategories] = useState<(Category | 'All')[]>(['All']);
@@ -153,13 +158,21 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header with Cart Icon */}
       <View style={styles.headerContainer}>
         <Text style={styles.header}>Home</Text>
-        <TouchableOpacity style={styles.cartButton}
-        onPress={() => navigation.navigate('Cart')}>
-          <Image
-            source={require('../assets/cart.png')} // Ensure cart.png is in your assets
-            style={styles.cartIcon}
-          />
-        </TouchableOpacity>
+        <TouchableOpacity
+  style={styles.cartButton}
+  onPress={() => navigation.navigate('Cart')}
+>
+  <Image
+    source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
+    style={styles.cartIcon}
+  />
+  {totalQuantity > 0 && (
+    <View style={styles.cartBadge}>
+      <Text style={styles.cartBadgeText}>{totalQuantity}</Text>
+    </View>
+  )}
+</TouchableOpacity>
+
       </View>
   
       {/* Search Bar */}
@@ -296,6 +309,23 @@ cartIcon: {
   height: 24,
   resizeMode: 'contain',
 },
+cartBadge: {
+  position: 'absolute',
+  top: -5,
+  right: -5,
+  backgroundColor: '#f00',
+  borderRadius: 10,
+  width: 20,
+  height: 20,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+cartBadgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
+
 
 });
 

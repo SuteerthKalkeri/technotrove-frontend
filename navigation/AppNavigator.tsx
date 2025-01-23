@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import HomeScreen from '../screens/HomeScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import CartScreen from '../screens/CartScreen';
+import { CartProvider } from '../context/CartContext';
 
 
 // Define type for stack parameters
@@ -19,6 +20,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
     return (
+        <CartProvider>
         <NavigationContainer>
             <Stack.Navigator initialRouteName="Home">
                 <Stack.Screen 
@@ -31,8 +33,9 @@ export default function AppNavigator() {
                     component={ProductDetailScreen} 
                     options={{ title: 'TechnoTrove' }} // Set title for ProductDetail screen
                 />
-                <Stack.Screen name="Cart" component={CartScreen} options={{ title: 'Cart' }} />
+                <Stack.Screen name="Cart" component={CartScreen} options={{ title: 'TechnoTrove' }} />
             </Stack.Navigator>
         </NavigationContainer>
+        </CartProvider>
     );
 }

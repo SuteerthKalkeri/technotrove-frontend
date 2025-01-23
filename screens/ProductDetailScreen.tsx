@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
+import { useCart } from '../context/CartContext'; // Import CartContext
 
 type ProductDetailScreenProps = StackScreenProps<RootStackParamList, 'ProductDetail'>;
 
@@ -24,6 +25,10 @@ type ProductDetail = {
 
 const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, navigation }) => {
   const { productId } = route.params;
+  const {addToCart,cart} = useCart();
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -87,6 +92,20 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
     );
   }
 
+
+  const handleAddToCart = () => {
+    if (selectedVariant) {
+      addToCart({
+        sku: selectedVariant.sku,
+        name: `${product.name} > ${selectedVariant.name.replace(product.name, '').trim()}`,
+        price: selectedVariant.price,
+        quantity: 1,
+        variantImage: selectedVariant.variantImage,
+      });
+      Alert.alert('Added to cart');
+    }
+  };
+
   return (
       <View style={styles.container}>
       {/* Header with Cart Button */}
@@ -95,20 +114,27 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
     {`${product.name} > ${selectedVariant?.name.replace(product.name, '').trim()}`}
   </Text>
   <TouchableOpacity
-    style={styles.cartButton}
-    onPress={() => navigation.navigate('Cart')}
-  >
-    <Image
-      source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
-      style={styles.cartIcon}
-    />
-  </TouchableOpacity>
+  style={styles.cartButton}
+  onPress={() => navigation.navigate('Cart')}
+>
+  <Image
+    source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
+    style={styles.cartIcon}
+  />
+  {totalQuantity > 0 && (
+    <View style={styles.cartBadge}>
+      <Text style={styles.cartBadgeText}>{totalQuantity}</Text>
+    </View>
+  )}
+</TouchableOpacity>
+
 </View>
 
 
 
       {isPortrait ? (
         <>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.carouselContainer}>
             <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
               <Text style={styles.carouselButtonText}>‹</Text>
@@ -121,7 +147,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
               <Text style={styles.carouselButtonText}>›</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+          
             <Text style={styles.title}>{product.name}</Text>
             <View>
               <Text style={styles.description} numberOfLines={isExpanded ? undefined : 2}>
@@ -151,10 +177,18 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
                 </TouchableOpacity>
               ))}
             </View>
-          </ScrollView>
-          <View style={styles.priceContainer}>
+            <View style={styles.priceContainer}>
             <Text style={styles.price}>${selectedVariant.price.toFixed(2)}</Text>
           </View>
+            <View style={styles.container}>
+      {/* Add the Add to Cart Button */}
+      <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
+        <Text style={styles.addToCartText}>Add to Cart</Text>
+      </TouchableOpacity>
+    </View>
+    
+          </ScrollView>
+          
         </>
       ) : (
         <View style={styles.landscapeContainer}>
@@ -229,6 +263,7 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: '#f5f5f5',
     borderRadius: 8,
+    marginTop: 20
   },
   cartIcon: {
     width: 24,
@@ -280,12 +315,12 @@ const styles = StyleSheet.create({
   variantImage: { width: 50, height: 50, resizeMode: 'contain' },
   variantText: { fontSize: 13, textAlign: 'center', marginTop: 4 },
   priceContainer: {
+    
     alignItems: 'center',
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    marginTop: 30,
   },
-  price: { fontSize: 22, fontWeight: 'bold', color: '#000' },
+  price: { fontSize: 20, fontWeight: 'bold', color: '#000' },
   landscapeContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -314,6 +349,39 @@ const styles = StyleSheet.create({
     marginRight: 10,
     color: '#333',
   },
+  addToCartButton: {
+    backgroundColor: '#000',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+    width: '50%',
+    alignSelf: 'center', // Centers the button horizontally
+  },
+  
+  addToCartText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#f00',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  
   
   
 });
