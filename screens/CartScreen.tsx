@@ -49,6 +49,14 @@ const CartScreen: React.FC = () => {
     );
   };
 
+  if (cart.length === 0) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Your cart is empty.</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <FlatList
@@ -68,6 +76,13 @@ const CartScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 16 },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#555' },
   cartItem: {
     flexDirection: 'row',
     marginBottom: 16,

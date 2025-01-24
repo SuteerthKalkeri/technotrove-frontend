@@ -4,6 +4,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
 import { useCart } from '../context/CartContext'; // Import CartContext
+import Toast from 'react-native-toast-message';
 
 type ProductDetailScreenProps = StackScreenProps<RootStackParamList, 'ProductDetail'>;
 
@@ -58,13 +59,39 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
   // Generate cache-busted URLs when the selected variant changes
   useEffect(() => {
     if (selectedVariant) {
-      const updatedImages = selectedVariant.images.map(
-        (url) => `${url}?timestamp=${new Date().getTime()}`
-      );
-      setCacheBustedImages(updatedImages);
-      setCurrentImageIndex(0); // Reset the image index when variant changes
+      console.log("Raw images data:", selectedVariant.images);
+  
+      try {
+        let parsedImages: string[] = [];
+  
+        if (Array.isArray(selectedVariant.images) && selectedVariant.images.length === 1) {
+          // Extract the first element of the array and parse it as JSON
+          const innerString = selectedVariant.images[0];
+          parsedImages = JSON.parse(innerString);
+        } else if (typeof selectedVariant.images === "string") {
+          // Handle cases where it's directly a JSON string
+          parsedImages = JSON.parse(selectedVariant.images);
+        } else {
+          parsedImages = selectedVariant.images;
+        }
+  
+        console.log("Sanitized and parsed images:", parsedImages);
+  
+        // Generate cache-busted URLs
+        const updatedImages = parsedImages.map(
+          (url: string) => `${url}?timestamp=${new Date().getTime()}`
+        );
+  
+        setCacheBustedImages(updatedImages);
+        setCurrentImageIndex(0); // Reset the image index when variant changes
+      } catch (error) {
+        console.error("Failed to parse images:", error);
+      }
     }
   }, [selectedVariant]);
+  
+  
+  
 
   const handleNextImage = () => {
     if (cacheBustedImages.length > 0) {
@@ -102,7 +129,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
         quantity: 1,
         variantImage: selectedVariant.variantImage,
       });
-      Alert.alert('Added to cart');
+      Toast.show({
+        type: 'success', // Toast type
+        text1: 'Added to Cart', // Title
+        text2: `${selectedVariant.name} has been added to your cart.`, // Subtitle
+      });
     }
   };
 

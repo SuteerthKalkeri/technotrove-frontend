@@ -25,6 +25,7 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 import AppNavigator from './navigation/AppNavigator';
+import Toast from 'react-native-toast-message';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -34,7 +35,11 @@ type SectionProps = PropsWithChildren<{
 function App(): React.JSX.Element {
 
   return (
-     <AppNavigator />
+    <>
+      <AppNavigator />
+      <Toast/>
+    </>
+     
   );
 }
 
