@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
+import { ProductVariant } from '../types';
 
 type Category = 'Electronics' | 'Mobile' | 'Accessories' | 'Favorites';
 
@@ -22,7 +23,7 @@ export type Product = {
     name: Category;
   };
   primaryImage: string;
-  productVariants?: { price: number }[]; // Add this field to represent variants
+  productVariants?: { price: number }[]; 
 };
 
 interface Props {
@@ -51,10 +52,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const fetchProducts = async () => {
     try {
       const response = await api.get('/api/products');
-      const fetchedProducts: Product[] = response.data.map((product) => {
-        // Calculate the lowest price from the variants
+      const fetchedProducts: Product[] = response.data.map((product: Product) => {
+        
         const lowestPrice = product.productVariants
-          ? Math.min(...product.productVariants.map((variant) => variant.price))
+          ? Math.min(...product.productVariants.map((variant: any) => variant.price))
           : null;
         return { ...product, lowestPrice };
       });
@@ -163,7 +164,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   onPress={() => navigation.navigate('Cart')}
 >
   <Image
-    source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
+    source={require('../assets/cart.png')} 
     style={styles.cartIcon}
   />
   {totalQuantity > 0 && (
@@ -175,7 +176,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
       </View>
   
-      {/* Search Bar */}
+      
       <TextInput
         style={styles.searchBar}
         placeholder="Search products..."
@@ -183,7 +184,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onChangeText={setSearchQuery}
       />
   
-      {/* Category Filter */}
+      
       <View>
         <FlatList
           data={categories}
@@ -195,7 +196,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
   
-      {/* Product Grid */}
+      
       <FlatList
         key={isPortrait ? 'portrait' : 'landscape'}
         data={filteredProducts}

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Dimensions
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import api from '../services/api';
-import { useCart } from '../context/CartContext'; // Import CartContext
+import { useCart } from '../context/CartContext';
 import Toast from 'react-native-toast-message';
 
 type ProductDetailScreenProps = StackScreenProps<RootStackParamList, 'ProductDetail'>;
@@ -42,9 +42,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        const response = await api.get(`/api/products/${productId}`);
+        const response = await api.get(`/api/products`, {
+          params: { id: productId }, 
+        });
         const productData: ProductDetail = response.data;
-
+  
         const sortedVariants = productData.productVariants.sort((a, b) => a.price - b.price);
         setProduct({ ...productData, productVariants: sortedVariants });
         setSelectedVariant(sortedVariants[0]);
@@ -52,11 +54,12 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
         console.error('Error fetching product details:', error.message);
       }
     };
-
+  
     fetchProductDetails();
   }, [productId]);
+  
 
-  // Generate cache-busted URLs when the selected variant changes
+  
   useEffect(() => {
     if (selectedVariant) {
       console.log("Raw images data:", selectedVariant.images);
@@ -65,11 +68,11 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
         let parsedImages: string[] = [];
   
         if (Array.isArray(selectedVariant.images) && selectedVariant.images.length === 1) {
-          // Extract the first element of the array and parse it as JSON
+          
           const innerString = selectedVariant.images[0];
           parsedImages = JSON.parse(innerString);
         } else if (typeof selectedVariant.images === "string") {
-          // Handle cases where it's directly a JSON string
+          
           parsedImages = JSON.parse(selectedVariant.images);
         } else {
           parsedImages = selectedVariant.images;
@@ -77,13 +80,13 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
   
         console.log("Sanitized and parsed images:", parsedImages);
   
-        // Generate cache-busted URLs
+        
         const updatedImages = parsedImages.map(
           (url: string) => `${url}?timestamp=${new Date().getTime()}`
         );
   
         setCacheBustedImages(updatedImages);
-        setCurrentImageIndex(0); // Reset the image index when variant changes
+        setCurrentImageIndex(0); 
       } catch (error) {
         console.error("Failed to parse images:", error);
       }
@@ -130,16 +133,16 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
         variantImage: selectedVariant.variantImage,
       });
       Toast.show({
-        type: 'success', // Toast type
-        text1: 'Added to Cart', // Title
-        text2: `${selectedVariant.name} has been added to your cart.`, // Subtitle
+        type: 'success', 
+        text1: 'Added to Cart', 
+        text2: `${selectedVariant.name} has been added to your cart.`, 
       });
     }
   };
 
   return (
       <View style={styles.container}>
-      {/* Header with Cart Button */}
+      
       <View style={styles.headerContainer}>
   <Text style={styles.hierarchyText}>
     {`${product.name} > ${selectedVariant?.name.replace(product.name, '').trim()}`}
@@ -149,7 +152,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
   onPress={() => navigation.navigate('Cart')}
 >
   <Image
-    source={require('../assets/cart.png')} // Ensure cart.png is in your assets folder
+    source={require('../assets/cart.png')} 
     style={styles.cartIcon}
   />
   {totalQuantity > 0 && (
@@ -212,7 +215,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
             <Text style={styles.price}>${selectedVariant.price.toFixed(2)}</Text>
           </View>
             <View style={styles.container}>
-      {/* Add the Add to Cart Button */}
+
       <TouchableOpacity style={styles.addToCartButton} onPress={handleAddToCart}>
         <Text style={styles.addToCartText}>Add to Cart</Text>
       </TouchableOpacity>
@@ -223,7 +226,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
         </>
       ) : (
         <View style={styles.landscapeContainer}>
-  {/* Left Section: Image Carousel */}
+  
   <View style={styles.landscapeCarouselContainer}>
     <TouchableOpacity onPress={handlePreviousImage} style={styles.carouselButton}>
       <Text style={styles.carouselButtonText}>‹</Text>
@@ -237,7 +240,7 @@ const ProductDetailScreen: React.FC<ProductDetailScreenProps> = ({ route, naviga
     </TouchableOpacity>
   </View>
 
-  {/* Right Section: Product Details */}
+  
   <ScrollView contentContainerStyle={styles.landscapeDetailsContainer}>
     <Text style={styles.title}>{product.name}</Text>
     <View>
@@ -376,7 +379,7 @@ const styles = StyleSheet.create({
   hierarchyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    flex: 1, // Ensures the text takes available space
+    flex: 1, 
     marginRight: 10,
     color: '#333',
   },
@@ -388,7 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 10,
     width: '50%',
-    alignSelf: 'center', // Centers the button horizontally
+    alignSelf: 'center', 
   },
   
   addToCartText: {

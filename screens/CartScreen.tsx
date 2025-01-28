@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
   },
-  image: { width: 60, height: 60, marginRight: 16, borderRadius: 8 },
+  image: { width: 60, height: 60, marginRight: 16, borderRadius: 8, resizeMode: "contain"},
   details: { flex: 1 },
   itemName: { fontSize: 16, fontWeight: 'bold' },
   itemPrice: { fontSize: 14, color: '#555' },
